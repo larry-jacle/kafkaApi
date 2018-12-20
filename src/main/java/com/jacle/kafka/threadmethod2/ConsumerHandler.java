@@ -56,9 +56,9 @@ public class ConsumerHandler
         {
             ConsumerRecords<String,String> records=consumer.poll(100);
 
-            for(ConsumerRecord record:records)
+//            for(ConsumerRecord record:records)
             {
-                executors.submit(new Worker(record));
+                executors.submit(new Worker(records));
             }
 
         }

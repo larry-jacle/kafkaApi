@@ -30,7 +30,7 @@ public class ProducerTester
         Producer<String, String> producer = null;
         try {
             producer = new KafkaProducer<String, String>(props);
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 10; i++) {
                 String msg = "Message " + i;
                 final long  currtime=System.currentTimeMillis();
                 producer.send(new ProducerRecord<String, String>("topic_1", msg), new Callback() {
