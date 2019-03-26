@@ -1,8 +1,9 @@
 package com.jacle.redis;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.*;
+
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -12,7 +13,7 @@ public class RedisConn
 {
     public static void main(String[] args)
     {
-        new RedisConn().nativeMethod();
+        new RedisConn().connCluster();
     }
 
 
@@ -52,5 +53,33 @@ public class RedisConn
 
         jedis.close();
         pool.close();
+    }
+
+    public void connCluster()
+    {
+        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        // 最大连接数
+        poolConfig.setMaxTotal(100);
+        // 最大空闲数
+        poolConfig.setMaxIdle(10);
+        // 最大允许等待时间，如果超过这个时间还未获取到连接，则会报JedisException异常：
+        // Could not get a resource from the pool
+        poolConfig.setMaxWaitMillis(1000);
+
+        Set<HostAndPort> set=new HashSet<HostAndPort>();
+        set.add((new HostAndPort("10.1.12.206", 6380)));
+        set.add((new HostAndPort("10.1.12.206", 6381)));
+        set.add((new HostAndPort("10.1.12.206", 6382)));
+        set.add((new HostAndPort("10.1.12.206", 6383)));
+        set.add((new HostAndPort("10.1.12.206", 6384)));
+        set.add((new HostAndPort("10.1.12.206", 6385)));
+
+        JedisCluster cluster=new JedisCluster(set,poolConfig);
+        System.out.println(cluster);
+        cluster.set("name","jemdsdfsd");
+        String name=cluster.get("name");
+        System.out.println(name);
+
+        cluster.close();
     }
 }
