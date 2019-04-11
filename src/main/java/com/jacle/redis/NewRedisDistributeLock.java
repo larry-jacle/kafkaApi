@@ -2,28 +2,30 @@ package com.jacle.redis;
 
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
 
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 旧版本的Redis分布式锁的实现
+ * 新版本的Redis分布式锁的实现
  * 通过setnx
  * setget来实现
  * <p>
  * <p>
- * 缺点：
- *    无法区分锁的拥有者
- *    锁释放的时候可能会误删
+ *
  */
-public class OldRedisDistributeLock {
+public class NewRedisDistributeLock {
     private String lockKey=UUID.randomUUID().toString();
     private long expireTime;
     private boolean lockState;
     private Thread threadWithLock;
     private Jedis jedis;
-
+    private static final Long RELEASE_SUCCESS = 1L;
+    private static final String LOCK_SUCCESS = "OK";
+    private static final String SET_IF_NOT_EXIST = "NX";
+    private static final String SET_WITH_EXPIRE_TIME = "PX";
 
     public Thread getThreadWithLock() {
         return threadWithLock;
@@ -31,16 +33,17 @@ public class OldRedisDistributeLock {
 
     public static void main(String[] args) {
         for (int i = 0; i < 1000; i++) {
+            final int index=i;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     Jedis jedis = new Jedis("10.1.12.206", 6388);
-                    OldRedisDistributeLock oldRedisDistributeLock = new OldRedisDistributeLock(jedis, 2000);
+                    NewRedisDistributeLock newRedisDistributeLock = new NewRedisDistributeLock(jedis, 2000);
                     try {
-                        oldRedisDistributeLock.getDistributeLockWithRetry(3000, TimeUnit.MILLISECONDS);
-                        System.out.println(oldRedisDistributeLock.getThreadWithLock().getName() + "获得锁");
+                        boolean flag=newRedisDistributeLock.getDistributeLockWithRetry(3000,TimeUnit.MILLISECONDS,"request-"+index);
+                        System.out.println("request-"+index+(flag?"获得锁":"未获得锁"));
                     } finally {
-                        oldRedisDistributeLock.unlock();
+                        newRedisDistributeLock.unlock("request-"+index);
                     }
 
                 }
@@ -48,12 +51,12 @@ public class OldRedisDistributeLock {
         }
     }
 
-    public OldRedisDistributeLock() {
+    public NewRedisDistributeLock() {
 
 
     }
 
-    public OldRedisDistributeLock(Jedis jedis, long expireTime) {
+    public NewRedisDistributeLock(Jedis jedis, long expireTime) {
         this.jedis = jedis;
         this.expireTime = expireTime;
     }
@@ -64,42 +67,22 @@ public class OldRedisDistributeLock {
      *
      * @return
      */
-    public boolean getDistributeLockWithRetry(long timeout, TimeUnit timeoutunit) {
+    public boolean getDistributeLockWithRetry(long timeout, TimeUnit timeoutunit,String requestId) {
         long currentTime = System.currentTimeMillis();
         long lockTryTimeout = timeoutunit.toMillis(timeout);
 
         //开始进行时间判断循环进行重试
         while (System.currentTimeMillis() - currentTime < lockTryTimeout) {
             //计算lock的expiretime
-            String expireTimeStr = System.currentTimeMillis() + expireTime + "";
+            long expireTimeWithLong = System.currentTimeMillis() + expireTime ;
 
-            //通过setnx来设置，检测是否获取锁
-            if (jedis.setnx(lockKey, expireTimeStr) ==1) {
-                lockState = true;
-                threadWithLock = Thread.currentThread();
+            //这里如果使用setnx出现网络问题，无法设置过期时间
+            String returnStr=jedis.set(lockKey,requestId,SET_IF_NOT_EXIST,SET_WITH_EXPIRE_TIME,expireTimeWithLong);
 
+            if(LOCK_SUCCESS.equals(returnStr))
+            {
+                //获取锁成功
                 return true;
-            }
-
-            //如果没有获取到锁，1、下次进行重试 2、检测获取锁的线程未释放锁的情况
-            //当读取的时候，expire了，线程get的可能为nil
-            String lockVal = jedis.get(lockKey);
-
-
-            if (lockVal != null && System.currentTimeMillis() > Long.parseLong(lockVal)) {
-                //处理原来获取锁的线程未释放锁的情况,重新设置expireTime，并修改当前线程的锁状态
-                //getset的方法使用是为了区分哪个Thread是第一个执行getset的方法
-
-                //这里出现问题，虽然第一个执行getset的方法能够被区分，但是expiretimestr会被覆盖，但是没有影响ss
-                String oldVal = jedis.getSet(lockKey, expireTimeStr);
-
-                //第一个执行getset方法的Thread
-                if (oldVal != null && oldVal.equals(lockVal)) {
-                    lockState = true;
-                    jedis.expire(lockKey, (int) (expireTime / 1000));
-                    threadWithLock = Thread.currentThread();
-                    return true;
-                }
             }
 
             try {
@@ -126,6 +109,22 @@ public class OldRedisDistributeLock {
             threadWithLock = null;
         }
     }
+
+    public boolean unlock(String requestId)
+    {
+        String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+        Object result = jedis.eval(script, Collections.singletonList(lockKey), Collections.singletonList(requestId));
+
+        if(RELEASE_SUCCESS.equals(result))
+        {
+            return true;
+        }
+
+        return false;
+
+    }
+
+
 
 
     /**

@@ -2,6 +2,7 @@ package com.jacle.redis;
 
 import redis.clients.jedis.*;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +54,7 @@ public class RedisConn {
         pool.close();
     }
 
-    public void connCluster() {
+    public void connCluster() throws IOException {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         // 最大连接数
         poolConfig.setMaxTotal(100);
