@@ -29,7 +29,6 @@ public class RedisRedssionManager {
 
         RAtomicLong atomlong=redisson.getAtomicLong(RAtomName);
         atomlong.set(1);
-
     }
 
 
