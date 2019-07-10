@@ -36,11 +36,16 @@ public class SelfSerializerProducer {
 //        ps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,SelfSerializer.class.getName());
 
         ps.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,ProtobuffSerializer.class.getName());
+        //设定分区器
+        ps.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG,SelfPartitioner.class.getName());
+        //设定拦截器
+        ps.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,SelfInterceptor.class.getName());
+
         //KafkaProducer是线程安全的，可以用来被多个线程共享这个变量，引用
         KafkaProducer<String, Company> producer = new KafkaProducer<>(ps);
 
         //可以设置headers，表示的是消息的头
-        ProducerRecord<String,Company> record=new ProducerRecord<>("test", Company.builder().companyName("company1").code("code123").build());
+        ProducerRecord<String,Company> record=new ProducerRecord<>("test",0,"key-0", Company.builder().companyName("company1").code("code123").build());
 
 
         //带有回调函数的发送者
