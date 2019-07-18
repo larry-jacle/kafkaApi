@@ -39,13 +39,14 @@ public class SelfSerializerProducer {
         //设定分区器
         ps.setProperty(ProducerConfig.PARTITIONER_CLASS_CONFIG,SelfPartitioner.class.getName());
         //设定拦截器
-        ps.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,SelfInterceptor.class.getName());
+//        ps.setProperty(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG,SelfInterceptor.class.getName());
 
         //KafkaProducer是线程安全的，可以用来被多个线程共享这个变量，引用
         KafkaProducer<String, Company> producer = new KafkaProducer<>(ps);
 
         //可以设置headers，表示的是消息的头
-        ProducerRecord<String,Company> record=new ProducerRecord<>("test",0,"key-0", Company.builder().companyName("company1").code("code123").build());
+//        ProducerRecord<String,Company> record=new ProducerRecord<>("test",0,"key-0", Company.builder().companyName("xcompany1").code("code123").build());
+        ProducerRecord<String,Company> record=new ProducerRecord<>("test",Company.builder().companyName("xcompany1").code("code123").build());
 
 
         //带有回调函数的发送者
@@ -55,10 +56,14 @@ public class SelfSerializerProducer {
         //直接使用set方法是异步发送
         //send方法会返回future，可以通过get方法来阻塞，从而实现同步
         //异步发送消息
-        Future<RecordMetadata> future = getRecordMetadataFuture(producer, record);
+        //Future<RecordMetadata> future = getRecordMetadataFuture(producer, record);
 
         //同步发送
-        RecordMetadata recordMetadata=producer.send(record).get();
+        for(int i=0;i<3;i++)
+        {
+            RecordMetadata recordMetadata=producer.send(record).get();
+        }
+
 
         //System.out.println(future.toString()+"##"+recordMetadata.offset());
 

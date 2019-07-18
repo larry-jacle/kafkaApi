@@ -32,41 +32,56 @@ public class CustomerSyncCommit
         Properties properties = getConfig("consumerGroup1");
 
         KafkaConsumer<String, Company> consumer = new KafkaConsumer<>(properties);
-        List<PartitionInfo> partitionInfos=consumer.partitionsFor("test");
+//        List<PartitionInfo> partitionInfos=consumer.partitionsFor("test");
 
-        TopicPartition tp=new TopicPartition(partitionInfos.get(0).topic(),partitionInfos.get(0).partition());
+//        TopicPartition tp=new TopicPartition(partitionInfos.get(0).topic(),partitionInfos.get(0).partition());
         //消费者可以订阅一个队列的一个分区
-        consumer.assign(Arrays.asList(tp));
-        long lastOffset=-1;
-        int times=0;
+        //consumer.assign(Arrays.asList(tp));
+        consumer.subscribe(Arrays.asList("test"));
+//        long lastOffset=-1;
+
+
+        //优雅的关闭消费者,kafka安全的关闭消费者通过wake方法，抛出的wakeup线程不需要处理
+        //如果while循环是在主线程，可以通过runtime的hook来进行
 
         try {
             while (isRunnig.get()) {
-                ConsumerRecords<String, Company> records = consumer.poll(200);
-                //records的方法
-                System.out.println(records.count());
-                System.out.println(records.isEmpty());
+                try {
+                    System.out.println("poll之前...");
+                    //每次进行poll的时候，内部是执行提交上一次的offset
+                    ConsumerRecords<String, Company> records = consumer.poll(6000);
+                    //records的方法
+                    //System.out.println(records.count());
+                    //System.out.println(records.isEmpty());
 
-                if(times++>3)
+                    System.out.println("##########" + counter.getAndIncrement() + "#############");
+                    Thread.sleep(2000);
+
+                    if (records.count() > 0) {
+                        //根据主题进行消费
+//                        List<ConsumerRecord<String, Company>> result = records.records(tp);
+//                        lastOffset = result.get(result.size() - 1).offset();
+                        System.out.println("有消息拉取...");
+                        records.forEach(record->{System.out.println(record.value().getCompanyName());});
+                        //手动提交,同步提交，无参数方法
+                        //提交错误会进行重试,重试的时候，此分区是阻塞的，如果不是出现严重的错误，不会出现无法提交的情况
+                        consumer.commitSync();
+                    }else
+                    {
+                        System.out.println("本次无数据...");
+//                        consumer.commitSync(); 如果拉取的消息为空，提交offset，不会有响应
+                    }
+
+                    System.out.println("##########" + counter.get() + "#############");
+                }catch (Exception e)
                 {
-                    break;
-                }
-
-                System.out.println("##########"+counter.get()+"#############");
-                Thread.sleep(6000);
-
-                if(records.count()>0)
-                {
-                    //根据主题进行消费
-                    List<ConsumerRecord<String,Company>> result=records.records(tp);
-                    lastOffset=result.get(result.size()-1).offset();
-                    //手动提交,同步提交，无参数方法
-                    //提交错误会进行重试
+                    e.printStackTrace();
+                }finally {
                     consumer.commitSync();
                 }
-
-                System.out.println("##########"+counter.get()+"#############");
             }
+
+            /*
 
             //最后输出position,获取分区已经提交的offset
             OffsetAndMetadata metadata=consumer.committed(tp);
@@ -74,6 +89,8 @@ public class CustomerSyncCommit
             System.out.println("提交的位置:"+metadata.offset());
             //将偏移量一定是针对分区的,肯定要指定分区号
             System.out.println("提交的位置："+consumer.position(tp));
+
+            */
 
         }catch (WakeupException w)
         {
@@ -106,6 +123,9 @@ public class CustomerSyncCommit
 //        props.put("value.deserializer",SelfDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ProtobuffDeserializer.class.getName());
         props.put(ConsumerConfig.CLIENT_ID_CONFIG,"consumer01");
+
+        //消费者拦截器会影响提交的位移，原因：最大位移可能会被消费者拦截器过滤掉，这个问题要特别注意
+        props.put(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG,SelfCustomerInterceptor.class.getName());
 
         return props;
     }
