@@ -2,7 +2,6 @@ package com.jacle.kafka.advance;
 
 import com.jacle.kafka.NewVersionApi;
 import org.apache.kafka.clients.producer.*;
-import org.apache.kafka.common.header.Header;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,7 +9,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class SimpleProducer {
+public class ProducerBatch {
 
     public static void main(String[] args)
     {
@@ -32,12 +31,14 @@ public class SimpleProducer {
         //区分发送者
         //通过producerConfig变量来替代之前的key，防止书写错误
         ps.setProperty(ProducerConfig.CLIENT_ID_CONFIG,"producer0");
+        ps.setProperty(ProducerConfig.LINGER_MS_CONFIG,"500");
+        ps.setProperty(ProducerConfig.BATCH_SIZE_CONFIG,"1638400");
 
         //KafkaProducer是线程安全的，可以用来被多个线程共享这个变量，引用
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(ps);
 
         //可以设置headers，表示的是消息的头
-        ProducerRecord<String,String> record=new ProducerRecord<String, String>("kafka-formatv0", "key","value");
+        ProducerRecord<String,String> record=new ProducerRecord<String, String>("topic_compact", "key","value");
 
         //带有回调函数的发送者
         //消息发送分为三种形式：发送不管返回、同步、异步
@@ -49,7 +50,12 @@ public class SimpleProducer {
         //Future<RecordMetadata> future = getRecordMetadataFuture(producer, record);
 
         //同步发送
-        RecordMetadata recordMetadata=producer.send(record).get();
+        for(int i=0;i<100;i++)
+        {
+            Future<RecordMetadata> future = getRecordMetadataFuture(producer, record);
+            System.out.println(future.toString());
+        }
+
 
         //System.out.println(future.toString()+"##"+recordMetadata.offset());
 
