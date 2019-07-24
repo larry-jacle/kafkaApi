@@ -2,6 +2,7 @@ package com.jacle.kafka.advance;
 
 import com.jacle.kafka.NewVersionApi;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.utils.Time;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +14,9 @@ public class ProducerBatch {
 
     public static void main(String[] args)
     {
-        try {
+        //有些操作系统不支持毫秒级的精度时间
+        System.out.println(Time.SYSTEM.hiResClockMs());
+   /*     try {
             produceMsg();
         } catch (IOException e) {
             e.printStackTrace();
@@ -21,7 +24,7 @@ public class ProducerBatch {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     public static void  produceMsg() throws IOException, ExecutionException, InterruptedException {

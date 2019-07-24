@@ -1,8 +1,6 @@
 package com.jacle.kafka.advance;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 
 import java.util.Arrays;
 import java.util.Properties;
@@ -49,6 +47,8 @@ public class SimpleConsumer {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         /* value的序列化类 */
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        //设置为sticky的分区分配策略
+        props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, StickyAssignor.class.getName());
 
         return props;
     }
