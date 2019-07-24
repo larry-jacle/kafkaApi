@@ -15,6 +15,6 @@ public class SelfPartitionAssignor extends AbstractPartitionAssignor {
 
     @Override
     public String name() {
-        return null;
+        return "random";
     }
 }
