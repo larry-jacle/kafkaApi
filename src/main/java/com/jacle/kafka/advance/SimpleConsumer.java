@@ -13,7 +13,7 @@ public class SimpleConsumer {
     }
 
     public static void consumeMsg() {
-        Properties properties = getConfig("consumerGroup1");
+        Properties properties = getConfig("G--consumerGroup1");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(properties);
         consumer.subscribe(Arrays.asList("test"));
@@ -26,7 +26,6 @@ public class SimpleConsumer {
             {
                 System.out.println(record.offset()+"/"+record.partition()+"/"+record.key()+"/"+record.value());
             }
-
         }
     }
 
