@@ -9,7 +9,7 @@ import java.io.*;
 //equals默认是不适用静态、瞬态的变量来构成equal方法
 @RequiredArgsConstructor()  //会生成常量和notnull的变量的构造方法
 //@NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
 @EqualsAndHashCode(exclude = {"code"},callSuper=false)
 @ToString(includeFieldNames = true,exclude = {"code","companyName"})
 @Data
@@ -22,7 +22,8 @@ public class Company  implements Serializable
     @Setter(AccessLevel.PROTECTED)
     private String code;
     private final String bussinessCode="BSC123";
-    @NotNull  private String code2;
+    @NotNull
+    private String code2;
 
 
     //非空的判断

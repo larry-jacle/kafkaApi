@@ -12,6 +12,7 @@ import java.util.Map;
  *
  */
 public class TopicCreationPolicy implements CreateTopicPolicy {
+
     @Override
     public void validate(RequestMetadata requestMetadata) throws PolicyViolationException {
         //对topic的设置参数进行验证，是否建立了符合队列规范的topic
