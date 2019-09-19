@@ -1,15 +1,14 @@
 package com.jacle.kafka.advance.kafkastream;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.*;
-import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
 
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
@@ -17,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
  * kafka stream中：Kstream和Ktable
  * Kstream是不安全的，一般的topic不能设置数据压缩，否则会出现数据丢失的情况
  */
-public class KStreamInstance {
+public class KStreamInstance2 {
     private static final CountDownLatch latch = new CountDownLatch(1);
 
     public static void main(String[] args) {
@@ -25,7 +24,7 @@ public class KStreamInstance {
         Properties props = new Properties();
 
         //设置流的配置参数
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-stream-in-out");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "kafka-stream-2");
         props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "s203:9092");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -41,17 +40,13 @@ public class KStreamInstance {
         //要写在一起，否则不会执行，流的导向
         //读取流，可以只定key-value的类型
         //Kstream类似source
-        KStream<String, String> source = streamsBuilder.stream("in");
+        final KStream<String, String> source = streamsBuilder.stream("streams-plaintext-input");
         //所有的processor要连起来写,否则执行会发生中断，具体表现为无响应;
 //        source.to("streams-pipe-output");
 //        source.flatMapValues(line->Arrays.asList(line.split(" "))).to("streams-pipe-output");
 
         //Ktable类似结果
-        //指定存储格式
-        //跟spark的区别，元组必须使用new  KeyValue
-        //注意消费者指定key，value的反解析器类型
-        source.flatMapValues(line -> Arrays.asList(line.split(" "))).map((k,v)->new KeyValue<>(v,v)).groupByKey().count().toStream().to("out", Produced.with(Serdes.String(),Serdes.Long()));
-
+        source.flatMapValues(line->Arrays.asList(line.split(" "))).to("streams-pipe-output");
 
         //select key设置entry的key
      /*   source.selectKey(new KeyValueMapper<String, String, String>() {

@@ -1,14 +1,10 @@
 package com.jacle.kafka.advance.kafkastream;
 
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.PunctuationType;
-import org.apache.kafka.streams.processor.Punctuator;
 import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.KeyValueStore;
 
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -17,7 +13,7 @@ import java.util.stream.Stream;
  * processor的方式来编写kafka stream
  * 低级别的API
  */
-public class KafkaStreamProcessor implements Processor<String,String>
+public class KafkaStreamProcessor2 implements Processor<String,String>
 {
     private ProcessorContext processorContext;
     private KeyValueStore<String,Long> keyValueStore;
@@ -77,8 +73,6 @@ public class KafkaStreamProcessor implements Processor<String,String>
             //keyValueStore.delete(entry.key);
         });
 
-
-        //这里也可以将statestore的数据存储至数据库等其他持久设备中
 
         iterator.close();
         processorContext.commit();
