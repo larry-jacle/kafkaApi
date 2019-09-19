@@ -13,6 +13,8 @@ import java.util.stream.Stream;
  * 低级别的API
  *
  * 实现PeocessorSupplier的方式
+ *
+ * 是否可以使用引用，看类最终的实现类型；
  */
 public class KafkaStreamProcessorSupplier implements ProcessorSupplier<String,String>
 {
@@ -41,7 +43,6 @@ public class KafkaStreamProcessorSupplier implements ProcessorSupplier<String,St
                             processorContext.forward(entry.key,entry.value.toString());
                             //keyValueStore.delete(entry.key);
                         });
-
 
                         //这里也可以将statestore的数据存储至数据库等其他持久设备中
                         iterator.close();
