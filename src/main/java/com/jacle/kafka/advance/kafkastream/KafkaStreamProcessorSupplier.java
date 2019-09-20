@@ -35,7 +35,8 @@ public class KafkaStreamProcessorSupplier implements ProcessorSupplier<String,St
             @Override
             public void init(ProcessorContext processorContext) {
                 this.processorContext=processorContext;
-                this.processorContext.schedule(1000, PunctuationType.WALL_CLOCK_TIME, new Punctuator() {
+                //PunctuationType.WALL_CLOCK_TIME 是设置的时间有效，定期轮训
+                this.processorContext.schedule(1000, PunctuationType.STREAM_TIME, new Punctuator() {
                     @Override
                     public void punctuate(long l) {
                         KeyValueIterator<String,Long> iterator=keyValueStore.all();
@@ -62,6 +63,11 @@ public class KafkaStreamProcessorSupplier implements ProcessorSupplier<String,St
                     keyValueStore.put(word,wordcount.map(cout->cout+1).orElse(1L));
                 });
 
+                try {
+                    Thread.sleep(6000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 this.processorContext.commit();
             }
 
