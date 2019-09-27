@@ -10,6 +10,9 @@ import java.time.*;
      LocalDateTime，日期时间
      Duration，时间间隔
      Period，日期间隔
+
+ jdk8:日期时间的处理api、lambda表达式、接口可以使用默认方法
+
  */
 public class Java8Date
 {
@@ -54,7 +57,31 @@ public class Java8Date
 
         //日期的间隔对象
         Period period=Period.ofDays(3);
+        LocalDate startDate = LocalDate.of(2015, 2, 20);
+        LocalDate endDate = LocalDate.of(2017, 1, 15);
 
+        //计算两个日期的差值
+        Period p1=Period.between(startDate,endDate);
+        System.out.println("两个日期的差值:"+p1.getDays());
+        //判断结束日期是否大于开始日期
+        System.out.println(p1.isNegative());
+        //可以通过解析文本来构建Period,其格式为“PnYnMnD”
+        Period period1=Period.parse("P2Y3M5D");
+        System.out.println(period1.getYears());
+        System.out.println(period1.getDays());
+
+        //Duration小时秒或者纳秒的时间间隔，适合高精度的时间处理
+        Instant start = Instant.parse("2017-10-03T10:15:30.00Z");
+        Instant end = Instant.parse("2017-10-03T10:16:30.00Z");
+
+        Duration duration1 = Duration.between(start, end);
+        System.out.println(duration1.isNegative());
+
+        //我们可以通过Period或者Duration将日期或者时间，获取指定单位的数值
+        //方法不能够将所有数值转换为同一个单位
+        Duration fromChar1 = Duration.parse("P1DT1H10M10.5S");
+        Duration fromChar2 = Duration.parse("PT10M");
+        System.out.println(fromChar2.toHours());
 
     }
 }

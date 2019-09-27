@@ -52,7 +52,9 @@ public class KStreamInstance {
         //注意消费者指定key，value的反解析器类型
         source.flatMapValues(line -> Arrays.asList(line.split(" "))).map((k,v)->new KeyValue<>(v,v)).groupByKey().count().toStream().to("out", Produced.with(Serdes.String(),Serdes.Long()));
 
-
+        KTable<String,Long>  kTable=source.flatMapValues(line -> Arrays.asList(line.split(" "))).map((k,v)->new KeyValue<>(v,v)).groupByKey().count();
+        //将流的结果输出到控制台
+        kTable.toStream().print(Printed.toSysOut());
         //select key设置entry的key
      /*   source.selectKey(new KeyValueMapper<String, String, String>() {
             @Override
@@ -107,6 +109,36 @@ public class KStreamInstance {
         }
 
         System.exit(0);
+
+/*
+        //变量定义.var
+        int age = 30;
+        //条件定义.null
+        if (props == null) {
+
+        }
+        //非空.nn
+        if (props != null) {
+
+        }
+
+        //遍历.for .fori
+        int[] arr=new int[9];
+        for (int i = 0; i < arr.length; i++) {
+
+        }
+        for (int i : arr) {
+
+        }
+
+        //if条件判断  age>0.if
+        if (age>0) {
+
+        }
+        //null.return返回语句
+//        return null;
+    */
+
     }
 
 
