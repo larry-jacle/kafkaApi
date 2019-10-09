@@ -1,36 +1,39 @@
 package com.jacle.kafka.advance.kafkastream;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.Printed;
-import org.apache.kafka.streams.kstream.TimeWindows;
-import java.time.Duration;
+import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.kstream.internals.WindowedDeserializer;
+import org.apache.kafka.streams.kstream.internals.WindowedSerializer;
+import org.apache.kafka.streams.state.WindowStore;
+
+import java.lang.reflect.Type;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 翻滚时间窗口,固定大小的，跳跃窗口,无空隙的窗口，前进举例跟窗口大小相等
+ * 温度窗口定时统计程序
  *
- * kafka窗口分为：翻转、跳跃(滑动)、会话四类窗口
- * 窗口的边界为左闭，右开
- * 翻转窗口是跳跃窗口的一个特例
+ * 有状态的流处理，状态其实表示的就是记录中间结果，因为我们在处理数据的时候，需要对中间数据进行协同访问，这个就是状态标记
  *
- * Suppressed.untilWindowCloses是表示窗口关闭的时候发送到下游
- * grace控制的是延迟关闭的时间
  */
-public class KafkaStreamTrumplingWindow
+public class TemperatureTrumplingWindow
 {
     private static final CountDownLatch latch = new CountDownLatch(1);
     private static final long WINDOWSTIME=9000L;
     private static final long WINDOWSSECONDS=5L;
+    private static Gson gson=new Gson();
 
     public static void main(String[] args)
     {
@@ -57,24 +60,43 @@ public class KafkaStreamTrumplingWindow
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
         StreamsBuilder streamsBuilder = new StreamsBuilder();
-        KStream<String, String> source = streamsBuilder.stream("truplingwindow");
+        KStream<String, String> source = streamsBuilder.stream("temperature");
 
         Instant currTime=Instant.now();
         //Ktable变为Kstream，使用to
 
-
         //时间窗口的时间戳是取的消息的时间，而不是根据建立的时候获取的时间
         //多个流同时处理，每个时间窗口的处理都是并行的
-        source.selectKey((k,v)->k).groupByKey().windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(WINDOWSSECONDS)))
-//        source.selectKey((k,v)->k).groupByKey().windowedBy(TimeWindows.of(KafkaStreamTrumplingWindow.WINDOWSTIME))
-                .count(Materialized.with(Serdes.String(),Serdes.Long()))
-                .toStream()
+        KTable<Windowed<String>,String> data=source.groupByKey().windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(WINDOWSSECONDS)))
+                //将窗口对象作为一个key，所有结果的key是Window<String>
+                .reduce((v1,v2)->{
+                  //解析v1、v2的数值，比较两个数据的大小，最好进行输出
+                    Type type = new TypeToken<Map<String, Integer>>(){}.getType();
+                  Map<String,Integer> map=gson.fromJson(v1,type);
+                  int val1=map.get("temp");
+                  int val2=map.get("humidity");
+
+                  //reduce的类型跟reduce的两个输入值类型一致
+                  return val1>val2?v1:v2;
+                },      //第二个参数可以指定状态标记的相关类型
+                        Materialized.<String, String, WindowStore<Bytes, byte[]>>as("time-windowed-aggregated-temp-stream-store")
+                        .withValueSerde(Serdes.String()));
                 //根据消息的入库时间，来进行窗口的处理，防止程序暂停止之后重启，消费之前的数据
                 //历史数据消费之后，不会再重新读取
 //                .filterNot((key,value)->KafkaStreamUtil.isOld(key,value,currTime))
 //                .print(Printed.toSysOut());
                 //有参数的引用，输入参数就是lambda的所有参数
-        .foreach(KafkaStreamUtil::showWindowedInfo);
+
+        //创建Window<String>的序列化和反序列化对象
+        WindowedSerializer<String> windowedSerializer=new WindowedSerializer<String>(Serdes.String().serializer());
+        WindowedDeserializer<String>  windowedDeserializer=new WindowedDeserializer<>(Serdes.String().deserializer());
+        Serde<Windowed<String>> windowedSerdes=Serdes.serdeFrom(windowedSerializer,windowedDeserializer);
+
+        data.toStream()
+                .foreach(KafkaStreamUtil::showWindowedInfo);
+//                .print(Printed.toSysOut());
+
+//        .to("temperature2",Produced.with(windowedSerdes,Serdes.String()));
 
         final Topology topology = streamsBuilder.build();
         KafkaStreams kafkaStreams = new KafkaStreams(topology, props);

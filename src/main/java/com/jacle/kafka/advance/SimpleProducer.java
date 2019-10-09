@@ -37,7 +37,12 @@ public class SimpleProducer {
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(ps);
 
         //可以设置headers，表示的是消息的头
-        ProducerRecord<String,String> record=new ProducerRecord<String, String>("test", "key","value");
+        for(int i=0;i<100;i++)
+        {
+            ProducerRecord<String,String> record=new ProducerRecord<String, String>("joinA", i+"","joinA"+i);
+            //同步发送
+            RecordMetadata recordMetadata=producer.send(record).get();
+        }
 
         //带有回调函数的发送者
         //消息发送分为三种形式：发送不管返回、同步、异步
@@ -49,7 +54,7 @@ public class SimpleProducer {
         //Future<RecordMetadata> future = getRecordMetadataFuture(producer, record);
 
         //同步发送
-        RecordMetadata recordMetadata=producer.send(record).get();
+//        RecordMetadata recordMetadata=producer.send(record).get();
 
         //System.out.println(future.toString()+"##"+recordMetadata.offset());
 

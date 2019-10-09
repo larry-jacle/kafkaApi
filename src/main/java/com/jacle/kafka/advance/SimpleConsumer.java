@@ -16,7 +16,7 @@ public class SimpleConsumer {
         Properties properties = getConfig("G--consumerGroup1");
 
         KafkaConsumer<String, String> consumer = new KafkaConsumer<String, String>(properties);
-        consumer.subscribe(Arrays.asList("truplingwindow"));
+        consumer.subscribe(Arrays.asList("temperature"));
 
         while(true)
         {

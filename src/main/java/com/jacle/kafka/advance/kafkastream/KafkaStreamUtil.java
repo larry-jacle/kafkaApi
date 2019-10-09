@@ -46,6 +46,13 @@ public class KafkaStreamUtil
         System.out.println(windowedKey);
     }
 
+
+    public static void showWindowedInfo(Windowed<String> key,String value)
+    {
+        Windowed<String> windowedKey=getReadableWindowed(key);
+        System.out.println("处理聚合结果：key=" + windowedKey + ",value=" + value);
+    }
+
     public static  void dealWithTimeWindowAggrValue(Windowed<String> key, Long value) {
         Windowed<String> windowed = getReadableWindowed(key);
         System.out.println("处理聚合结果：key=" + windowed + ",value=" + value);
